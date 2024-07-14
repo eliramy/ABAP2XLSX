@@ -7,9 +7,7 @@ DATA:
 gt_outtab TYPE TABLE OF pa0001.
 
 DATA:
-gr_table TYPE REF TO cl_salv_table,
-lv_xml   TYPE xstring,
-lv_dest  TYPE string.
+  gr_table TYPE REF TO cl_salv_table.
 
 START-OF-SELECTION.
 
@@ -31,72 +29,35 @@ START-OF-SELECTION.
 
   ENDTRY.
 
-* Convert internal table to xml (format xlsx)
-  lv_xml = gr_table->to_xml( xml_type = if_salv_bs_xml=>c_type_xlsx ).
-
-
   CASE cl_gui_alv_grid=>offline( ).
     WHEN 0. "Download XLSX file Online :)
 
-* Convert xml xstring to internal table so_raw255
+      TRY .
 
-      DATA:
-      lt_xml  TYPE TABLE OF so_raw255,
-      lv_size TYPE i.
+          cl_openxml_helper=>store_local_file(
+            EXPORTING
+              im_file_name = 'C:\TEMP\DUMMY.XLSX'
+              im_data      = gr_table->to_xml( xml_type = if_salv_bs_xml=>c_type_xlsx ) ). " Convert internal table to xml (format xlsx).
 
-      CALL FUNCTION 'SCMS_XSTRING_TO_BINARY'
-        EXPORTING
-          buffer        = lv_xml
-        IMPORTING
-          output_length = lv_size
-        TABLES
-          binary_tab    = lt_xml.
+        CATCH cx_openxml_not_allowed INTO DATA(lo_cx).
+          DATA(lv_err) = lo_cx->get_longtext( ).
 
-      lv_dest = 'C:\TEMP\DUMMY.XLSX'.
-      CALL METHOD cl_gui_frontend_services=>gui_download
-        EXPORTING
-          bin_filesize            = lv_size
-          filename                = lv_dest
-          filetype                = 'BIN'
-        CHANGING
-          data_tab                = lt_xml
-        EXCEPTIONS
-          file_write_error        = 1
-          no_batch                = 2
-          gui_refuse_filetransfer = 3
-          invalid_type            = 4
-          no_authority            = 5
-          unknown_error           = 6
-          header_not_allowed      = 7
-          separator_not_allowed   = 8
-          filesize_not_allowed    = 9
-          header_too_long         = 10
-          dp_error_create         = 11
-          dp_error_send           = 12
-          dp_error_write          = 13
-          unknown_dp_error        = 14
-          access_denied           = 15
-          dp_out_of_memory        = 16
-          disk_full               = 17
-          dp_timeout              = 18
-          file_not_found          = 19
-          dataprovider_exception  = 20
-          control_flush_error     = 21
-          not_supported_by_gui    = 22
-          error_no_gui            = 23
-          OTHERS                  = 24.
+          IF lv_err IS INITIAL.
+            lv_err = lo_cx->get_text( ).
+          ENDIF.
 
-      IF sy-subrc <> 0.
-        MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
-                   WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
-      ENDIF.
+          MESSAGE lv_err TYPE 'E'.
+
+      ENDTRY.
 
     WHEN OTHERS. " Download XLSX file Background :)
 
-      FIELD-SYMBOLS:
-      <fs_xml> TYPE so_raw255.
+      DATA:
+        lv_dest TYPE string.
 
       lv_dest = '\\SAP-SHARE-DEV\sap-dev-ftp\DEV\OUT\HR\DUMMY.XLSX'.
+
+      DATA(lv_xml) = gr_table->to_xml( xml_type = if_salv_bs_xml=>c_type_xlsx ).
 
       OPEN DATASET lv_dest IN BINARY MODE FOR OUTPUT.
       IF sy-subrc = 0.
