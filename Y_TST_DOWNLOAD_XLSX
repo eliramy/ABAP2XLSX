@@ -52,12 +52,8 @@ START-OF-SELECTION.
 
     WHEN OTHERS. " Download XLSX file Background :)
 
-      DATA:
-        lv_dest TYPE string.
-
-      lv_dest = '\\SAP-SHARE-DEV\sap-dev-ftp\DEV\OUT\HR\DUMMY.XLSX'.
-
-      DATA(lv_xml) = gr_table->to_xml( xml_type = if_salv_bs_xml=>c_type_xlsx ).
+      DATA(lv_dest) = CONV string( '\\SAP-SHARE-DEV\sap-dev-ftp\DEV\OUT\HR\DUMMY.XLSX' ).
+      DATA(lv_xml)  = gr_table->to_xml( xml_type = if_salv_bs_xml=>c_type_xlsx ).
 
       OPEN DATASET lv_dest IN BINARY MODE FOR OUTPUT.
       IF sy-subrc = 0.
